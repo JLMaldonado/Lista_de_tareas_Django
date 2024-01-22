@@ -2,9 +2,27 @@ from django.shortcuts import render
 from .models import Task
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-# from django.template import loader
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib import messages
+from django.contrib.auth.forms import AuthenticationForm
+from .models import * 
+from .forms import *
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login
+# Create your views here.
+
+
 
 # Create your views here.
+
+
+
+@login_required
 def index(request):
     # template = loader.get_template("app/index.html")
     db_data = Task.objects.all()
@@ -56,3 +74,40 @@ def delete(request, task_id):
     db_data = Task.objects.filter(id=task_id)
     db_data.delete()
     return HttpResponseRedirect(reverse("index")) 
+
+def registrar_usuario(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            # Guardar el nuevo usuario y autenticarlo
+            user = form.save()
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password1')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('/')
+    else:
+        form = UserCreationForm()
+    
+    # Contexto para renderizar la plantilla de registro de usuario
+    return render(request, 'registration/registrar_usuario.html', {'form': form})
+def ingresar(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('/')
+            else:
+                messages.error(request, 'Credenciales incorrectas. Por favor, intenta de nuevo.')
+        else:
+            messages.error(request, 'Credenciales incorrectas. Por favor, intenta de nuevo.')
+    else:
+        form = AuthenticationForm()
+
+    # Contexto para renderizar la plantilla de inicio de sesión
+    return render(request, 'registration/login.html', {'form': form})
